@@ -1,0 +1,11 @@
+{
+  "name": "bana-navigasyon-web",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "npx serve . -p 3019"
+  },
+  "dependencies": {
+    "edge-tts": "^1.0.1",
+    "msedge-tts": "^2.0.5"
+  }
+}
