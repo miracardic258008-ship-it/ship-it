@@ -202,6 +202,9 @@ const TILES={
   satellite:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   topo:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
 };
+// Almanya ve tüm dünya için OSM her zaman çalışır
+// Varsayılan katmanı OSM'e geçirelim
+const DEF={layer:'osm',camera:'drive',unit:'kmh',voice:true};
 const LLIST=['light','dark','osm','satellite','topo'];
 const LICO={light:'☀️',dark:'🌑',osm:'🗺️',satellite:'🛰️',topo:'🏔️'};
 const LLBL={light:'Açık',dark:'Koyu',osm:'OSM',satellite:'Uydu',topo:'Topo'};
@@ -362,7 +365,8 @@ function updMarker(){
     }
   }
 }
-map.on('dragstart',()=>{if(S.camera==='free')followMode=false;});
+map.on('dragstart',()=>{followMode=false;});  // sürükleme = haritayı serbest bırak
+map.on('zoomstart',()=>{if(!navActive)followMode=false;});  // zoom = haritayı serbest bırak
 map.on('click',e=>{
   if(document.getElementById('searchInput')===document.activeElement)return;
   if(navActive)return;
@@ -582,7 +586,7 @@ async function doReroute(){
   document.getElementById('rerouteBar').style.display='none';
 }
 function stopNav(){
-  navActive=false;followMode=true;routeData=null;stepIdx=0;warnedR={};
+  navActive=false;followMode=false;routeData=null;stepIdx=0;warnedR={};
   _clrRoute();
   document.getElementById('navBar').style.display='none';
   document.getElementById('rerouteBar').style.display='none';
