@@ -1,11 +1,16 @@
 {
-  "name": "bana-navigasyon-web",
-  "version": "1.0.0",
+  "name": "radarnav",
+  "version": "3.0.0",
+  "description": "RadarNav - Turkce GPS Navigasyon",
+  "main": "server.js",
   "scripts": {
-    "start": "npx serve . -p 3019"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
-    "edge-tts": "^1.0.1",
-    "msedge-tts": "^2.0.5"
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
