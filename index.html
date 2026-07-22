@@ -1206,12 +1206,18 @@ const _origOnPos=onPos;
 // 3. POI ve tabela toggle butonları başlangıç bloğunda çağrılacak
 function togglePOI(){
   poiActive=!poiActive;
+  const btn=document.getElementById('btnPOI');
+  btn.classList.toggle('on',poiActive);
+  btn.querySelector('.ibl').textContent=poiActive?'Gizle':'Yerler';
   if(poiActive){fetchPOI();poiTimer=setInterval(fetchPOI,60000);}
   else{if(poiTimer){clearInterval(poiTimer);poiTimer=null;}poiMks.forEach(m=>{try{map.removeLayer(m);}catch{}});poiMks=[];}
   speak(poiActive?'Yakın yerler haritada gösteriliyor.':'Yakın yerler gizlendi.');
 }
 function toggleSigns(){
   signsActive=!signsActive;
+  const btn=document.getElementById('btnSigns');
+  btn.classList.toggle('on',signsActive);
+  btn.querySelector('.ibl').textContent=signsActive?'Gizle':'Tabelar';
   if(signsActive)fetchRoadSigns();
   else{signMks.forEach(m=>{try{map.removeLayer(m);}catch{}});signMks=[];}
   speak(signsActive?'Yol tabelaları gösteriliyor.':'Yol tabelaları gizlendi.');
