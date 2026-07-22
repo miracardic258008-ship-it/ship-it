@@ -677,7 +677,13 @@ function chkRadars(){
   let near=null,nearD=Infinity;
   [...radarPts,...userReports].forEach(r=>{
     const d=hav(curLat,curLng,r.lat,r.lng);
+    // 5km dışına çıkınca tamamen sıfırla
     if(d>5000){delete warnedR[r.id];return;}
+    // 250m'yi geçip uzaklaşıyorsa (radar arkada kaldı) → sıfırla
+    if(d>300&&warnedR[r.id]instanceof Set&&warnedR[r.id].has(250)){
+      delete warnedR[r.id];
+      return;
+    }
     if(d<=2000){
       if(!warnedR[r.id])warnedR[r.id]=new Set();
       for(const lvl of[2000,1000,500,250]){
@@ -694,14 +700,18 @@ function chkRadars(){
     if(d<nearD){nearD=d;near=r;}
   });
   const b=document.getElementById('radarBanner');
-  if(near&&nearD<2000){
+  // Banner: sadece 250m'ye kadar göster, 250m geçince gizle
+  if(near&&nearD<=2000){
     b.style.display='flex';b.style.background=RC[near.type]||'#f59e0b';
     document.getElementById('rIcon').textContent=RE[near.type]||'⚠️';
     document.getElementById('rTitle').textContent=RL[near.type]||'Radar';
     document.getElementById('rSub').textContent=near.name||(near.type==='police'?'📢 Bildirilen kontrol noktası':'');
     document.getElementById('rDist').textContent=fmtD(nearD);
     nearD<250?b.classList.add('pulse'):b.classList.remove('pulse');
-  }else{b.style.display='none';b.classList.remove('pulse');}
+  }else{
+    b.style.display='none';
+    b.classList.remove('pulse');
+  }
 }
 function userReport(type){
   if(!curLat){spkSys('no_gps');return;}
