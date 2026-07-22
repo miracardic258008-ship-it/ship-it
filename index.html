@@ -374,12 +374,22 @@ map.on('click',e=>{
     startNav('Seçilen Konum',e.latlng.lat,e.latlng.lng);
 });
 function updGauge(){
-  const d=S.unit==='mph'?Math.round(curSpd*.621):curSpd;
-  document.getElementById('speedVal').textContent=d;
+  // Hız: GPS m/s → km/s veya mph
+  const kmh = Math.round(curSpd); // curSpd zaten km/s
+  const d = S.unit==='mph' ? Math.round(kmh*0.621371) : kmh;
+  const sv = document.getElementById('speedVal');
+  sv.textContent = d;
+  // Hıza göre renk
+  if(kmh > 120) sv.style.color='#ef4444';       // çok hızlı kırmızı
+  else if(kmh > 90) sv.style.color='#f97316';   // turuncu
+  else if(kmh > 50) sv.style.color='#22c55e';   // yeşil
+  else sv.style.color='var(--text)';             // normal
   document.getElementById('speedUnit').textContent=S.unit==='mph'?'MPH':'KM/S';
+  // GPS kalite rengi
   const col=curAcc<=5?'#22c55e':curAcc<=15?'#f59e0b':curAcc<=30?'#f97316':'#ef4444';
   document.getElementById('gpsDot').style.background=col;
   document.getElementById('gpsLbl').textContent=`GPS ${Math.min(curAcc,99)}m`;
+  // Navigasyonda hız göstergesi yukarı çıksın
   document.getElementById('speedGauge').style.bottom=navActive?'120px':'96px';
 }
 </script>
@@ -517,6 +527,8 @@ let routeData=null,routeL=null,routeO=null,destMk=null,stepIdx=0,rerouteAt=0;
 async function startNav(name,lat,lng){
   if(curLat==null){spkSys('no_gps');return;}
   _clrRoute();navActive=true;stepIdx=0;warnedR={};
+  followMode=true; // Rota başlayınca imleci takip et
+  S.camera=S.camera==='free'?'drive':S.camera; // free moddan çık
   document.getElementById('searchWrap').style.display='none';
   document.getElementById('bottomBar').style.display='none';
   document.getElementById('navBar').style.display='flex';
