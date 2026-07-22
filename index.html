@@ -316,8 +316,14 @@ function onPos(p){
   const sla=acc<200?kalman(KF.la,p.coords.latitude,acc):p.coords.latitude;
   const sln=acc<200?kalman(KF.ln,p.coords.longitude,acc):p.coords.longitude;
   if(curLat===null){KF.la.x=sla;KF.ln.x=sln;}
-  curLat=sla;curLng=sln;curHead=p.coords.heading||curHead;curAcc=acc;
-  const spd=Math.round(Math.max(0,(p.coords.speed||0)*3.6));
+  curLat=sla;curLng=sln;
+  // Heading: sadece gerçekten hareket ediliyorsa güncelle
+  if(p.coords.speed&&p.coords.speed>0.5&&p.coords.heading!==null)
+    curHead=p.coords.heading;
+  curAcc=acc;
+  // Hız: GPS gürültüsü filtrele — 2 km/s altını 0 say (duruyoruz)
+  const rawSpd=Math.max(0,(p.coords.speed||0)*3.6);
+  const spd = rawSpd < 2 ? 0 : Math.round(rawSpd);
   curSpd=spd;spdH.push(spd);if(spdH.length>30)spdH.shift();
   document.getElementById('gpsWait').style.display='none';
   updGauge();updMarker();
@@ -329,8 +335,12 @@ function onPos(p){
 function updMarker(){
   if(curLat==null)return;
   if(!userMk)userMk=L.marker([curLat,curLng],{icon:mkArrow(curHead,S.camera),zIndexOffset:1000}).addTo(map);
-  else{userMk.setLatLng([curLat,curLng]);userMk.setIcon(mkArrow(curHead,S.camera));}
-  if(followMode&&S.camera!=='free'){
+  else{
+    userMk.setLatLng([curLat,curLng]);
+    userMk.setIcon(mkArrow(curHead,S.camera));
+  }
+  // Duruyorken haritayı hareket ettirme — sadece gerçekten hareket edince takip et
+  if(followMode&&S.camera!=='free'&&(curSpd>1||!navActive)){
     const c=CAM[S.camera]||CAM.drive;
     // Her mod için haritanın konumunu ayarla
     // drive: araç altta, önü açık (haritayı yukarı kaydır)
