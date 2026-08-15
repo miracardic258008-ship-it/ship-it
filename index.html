@@ -132,6 +132,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <button class="ib" id="btnCam" onclick="camNext()" title="Kamera Modu"><span style="font-size:17px">🚗</span><span class="ibl">Önden</span></button>
   <button class="ib" id="btnLayer" onclick="layerNext()" title="Harita Tipi"><span style="font-size:17px">☀️</span><span class="ibl">Açık</span></button>
   <button class="ib on" id="btnToll" onclick="toggleTolls()" title="Paralı Geçişler"><span style="font-size:17px">🛣️</span><span class="ibl">Gişeler</span></button>
+  <button class="ib" id="btnSim" onclick="toggleSim()" title="Simülasyon"><span style="font-size:17px">🎮</span><span class="ibl">Sim</span></button>
   <button class="ib" id="btnVoice" onclick="voiceNext()" title="Ses"><span style="font-size:17px">🔊</span><span class="ibl">Ses</span></button>
   <button class="ib" id="btnCursor" onclick="openModal('cursorModal')" title="İmleç Seç"><span style="font-size:17px">🎯</span><span class="ibl">İmleç</span></button>
   <button class="ib" onclick="document.getElementById('reportPanel').style.display=document.getElementById('reportPanel').style.display==='flex'?'none':'flex'" title="Bildir"><span style="font-size:17px">📢</span><span class="ibl">Bildir</span></button>
@@ -342,6 +343,27 @@ function updMarker(){
   // Duruyorken haritayı hareket ettirme — sadece gerçekten hareket edince takip et
   if(followMode&&S.camera!=='free'&&(curSpd>1||!navActive)){
     const c=CAM[S.camera]||CAM.drive;
+    const RAD=curHead*Math.PI/180;
+    let vLat=curLat,vLng=curLng;
+    if(S.camera==='drive'){
+      vLat=curLat+Math.cos(RAD)*c.oY;
+      vLng=curLng+Math.sin(RAD)*Math.abs(c.oY);
+    } else if(S.camera==='back'){
+      vLat=curLat-Math.cos(RAD)*c.oY;
+      vLng=curLng-Math.sin(RAD)*Math.abs(c.oY);
+    } else if(S.camera==='side'){
+      vLat=curLat+Math.cos((curHead+90)*Math.PI/180)*c.oX;
+      vLng=curLng+Math.sin((curHead+90)*Math.PI/180)*Math.abs(c.oX);
+    }
+    if(S.camera==='top'){
+      map.setView([vLat,vLng],c.zoom,{animate:true,duration:.3,noMoveStart:true});
+    } else {
+      // Google Maps gibi yumuşak takip
+      map.panTo([vLat,vLng],{animate:true,duration:.4,easeLinearity:.5,noMoveStart:true});
+    }
+  }
+}
+    const c=CAM[S.camera]||CAM.drive;
     // Her mod için haritanın konumunu ayarla
     // drive: araç altta, önü açık (haritayı yukarı kaydır)
     // top: tam üstten, merkez
@@ -431,47 +453,76 @@ const AM={
 function amKey(txt){for(const[k,v]of Object.entries(AM)){if(v===txt)return k;}return null;}
 
 let _aQ=[],_aP=false,_aCur=null,_trV=null,_vReady=false;
+let _lastSpoken='',_lastSpokenAt=0;
+
 function initV(){
   if(!window.speechSynthesis)return;
   const all=window.speechSynthesis.getVoices();
   if(!all.length)return;
   _trV=all.find(v=>/leyla/i.test(v.name))||all.find(v=>/seda|emel/i.test(v.name))||all.find(v=>v.lang==='tr-TR')||all.find(v=>v.lang.startsWith('tr'));
   _vReady=true;
-  if(_aQ.length)procAQ();
+  if(_aQ.length)_procAQ();
 }
 if(window.speechSynthesis){window.speechSynthesis.onvoiceschanged=initV;initV();[300,800,2000].forEach(t=>setTimeout(initV,t));}
 
 function speak(txt,pri){
   if(!S.voice||!txt)return;
-  if(pri){_aQ=[];if(_aCur){_aCur.pause();_aCur=null;}window.speechSynthesis?.cancel();_aP=false;}
-  if(_aQ[_aQ.length-1]===txt)return;
-  _aQ.push(txt);procAQ();
+  // Aynı ses 3 sn içinde tekrar söylenmesin
+  const now=Date.now();
+  if(txt===_lastSpoken&&now-_lastSpokenAt<3000)return;
+  if(pri){
+    _aQ=[];
+    if(_aCur){try{_aCur.pause();_aCur.currentTime=0;}catch{}; _aCur=null;}
+    try{window.speechSynthesis?.cancel();}catch{}
+    _aP=false;
+  }
+  // Kuyrukta zaten varsa ekleme
+  if(_aQ.includes(txt))return;
+  // Kuyruk max 2 ses — taşmasın
+  if(_aQ.length>=2)_aQ=[];
+  _aQ.push(txt);
+  _procAQ();
 }
-async function procAQ(){
-  if(_aP||!_aQ.length)return;
+
+let _procRunning=false;
+async function _procAQ(){
+  if(_procRunning||_aP||!_aQ.length)return;
+  _procRunning=true;
   _aP=true;
   const txt=_aQ.shift();
-  const k=amKey(txt);
-  if(k){
-    await new Promise(res=>{
-      const a=new Audio(`audio/${k}.mp3`);_aCur=a;
-      a.onended=()=>{_aCur=null;res();};
-      a.onerror=()=>{_aCur=null;wsTTS(txt).then(res);};
-      a.play().catch(()=>wsTTS(txt).then(res));
-    });
-  } else {await wsTTS(txt);}
-  _aP=false;procAQ();
+  _lastSpoken=txt;
+  _lastSpokenAt=Date.now();
+  try{
+    const k=amKey(txt);
+    if(k){
+      await new Promise(res=>{
+        const a=new Audio(`audio/${k}.mp3`);_aCur=a;
+        a.onended=()=>{_aCur=null;res();};
+        a.onerror=()=>{_aCur=null;_wsTTS(txt).then(res);};
+        a.play().catch(()=>{_aCur=null;_wsTTS(txt).then(res);});
+        setTimeout(()=>{if(_aCur){try{_aCur.pause();}catch{}_aCur=null;res();}},8000);
+      });
+    } else {
+      await _wsTTS(txt);
+    }
+  }catch{}
+  _aP=false;_procRunning=false;
+  if(_aQ.length)setTimeout(_procAQ,80);
 }
-function wsTTS(txt){
+// Eski isim uyumu
+const procAQ=_procAQ;
+
+function _wsTTS(txt){
   return new Promise(res=>{
     if(!window.speechSynthesis){res();return;}
-    window.speechSynthesis.cancel();
+    try{window.speechSynthesis.cancel();}catch{}
     const u=new SpeechSynthesisUtterance(txt);
     u.lang='tr-TR';u.rate=1.0;u.pitch=1.05;u.volume=1;
     if(_trV)u.voice=_trV;
-    u.onend=u.onerror=()=>res();
+    u.onend=()=>res();
+    u.onerror=()=>res();
     window.speechSynthesis.speak(u);
-    setTimeout(res,txt.length*80+3000);
+    setTimeout(res,Math.min(txt.length*90+2000,8000));
   });
 }
 function spkSys(k){const t=AM[k];if(t)speak(t,k==='speed_warn'||k==='nav_reroute');}
@@ -1238,6 +1289,58 @@ function toggleSigns(){
   if(signsActive)fetchRoadSigns();
   else{signMks.forEach(m=>{try{map.removeLayer(m);}catch{}});signMks=[];}
   speak(signsActive?'Yol tabelaları gösteriliyor.':'Yol tabelaları gizlendi.');
+}
+</script>
+
+<script>
+// ── SİMÜLASYON MODU ─────────────────────────────────────────
+// Navigasyon sırasında araç rota üzerinde Google Maps gibi akar
+let simActive=false,simIdx=0,simTimer=null;
+
+function startSim(route){
+  if(!route||!route.poly||route.poly.length<2)return;
+  simActive=true;simIdx=0;
+  clearInterval(simTimer);
+  simTimer=setInterval(()=>{
+    if(!simActive||!route.poly[simIdx])return;
+    const pt=route.poly[simIdx];
+    const nxt=route.poly[simIdx+1];
+    // Heading hesapla
+    if(nxt){
+      const dLat=nxt.lat-pt.lat,dLng=nxt.lng-pt.lng;
+      curHead=Math.atan2(dLng,dLat)*180/Math.PI;
+      if(curHead<0)curHead+=360;
+    }
+    curLat=pt.lat;curLng=pt.lng;
+    curSpd=40; // simülasyon hızı
+    updMarker();
+    if(navActive)navUpd();
+    simIdx++;
+    if(simIdx>=route.poly.length){clearInterval(simTimer);simActive=false;}
+  },200); // 200ms'de bir nokta = akıcı hareket
+}
+
+function stopSim(){
+  simActive=false;
+  clearInterval(simTimer);simTimer=null;
+  curSpd=0;
+}
+
+function toggleSim(){
+  const btn=document.getElementById('btnSim');
+  if(simActive){
+    stopSim();
+    btn.classList.remove('on');
+    btn.querySelector('.ibl').textContent='Sim';
+    speak('Simülasyon durduruldu.');
+  } else {
+    if(!routeData){speak('Önce bir rota oluşturun.');return;}
+    btn.classList.add('on');
+    btn.querySelector('.ibl').textContent='Durdur';
+    followMode=true;
+    startSim(routeData);
+    speak('Simülasyon başladı.');
+  }
 }
 </script>
 
