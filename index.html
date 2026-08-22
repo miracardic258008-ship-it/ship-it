@@ -308,8 +308,23 @@ function fmtD(m){return m>=1000?`${(m/1000).toFixed(1)} km`:`${Math.round(m)} m`
 function fmtT(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h?`${h}s ${m}dk`:`${m} dk`;}
 
 if(navigator.geolocation){
-  navigator.geolocation.getCurrentPosition(onPos,()=>{},{ enableHighAccuracy:true,timeout:12000});
-  navigator.geolocation.watchPosition(onPos,()=>{},{enableHighAccuracy:true,maximumAge:1500,timeout:15000});
+  // Hata olursa gpsWait'i gizle ve fallback göster
+  function gpsErr(e){
+    console.warn('GPS hata:',e.code,e.message);
+    const w=document.getElementById('gpsWait');
+    w.innerHTML='<div style="font-size:32px">📍</div><div style="font-size:16px;font-weight:700;color:var(--text)">Konum izni gerekli</div><div style="font-size:12px;color:var(--muted);text-align:center;padding:0 20px">Tarayıcı adres çubuğundaki 📍 ikonuna tıklayıp konum iznine izin verin</div><button onclick="location.reload()" style="margin-top:12px;padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">Tekrar Dene</button>';
+    // 10 sn sonra yine de haritayı göster (Türkiye merkezli)
+    setTimeout(()=>{
+      w.style.display='none';
+      map.setView([39.9,32.8],10);
+    },10000);
+  }
+  navigator.geolocation.getCurrentPosition(onPos, gpsErr, {enableHighAccuracy:true,timeout:12000});
+  navigator.geolocation.watchPosition(onPos, gpsErr, {enableHighAccuracy:true,maximumAge:1500,timeout:15000});
+} else {
+  // GPS desteklenmiyor
+  document.getElementById('gpsWait').innerHTML='<div style="font-size:32px">❌</div><div style="font-size:16px;font-weight:700;color:var(--text)">GPS desteklenmiyor</div><div style="font-size:12px;color:var(--muted)">Bu tarayıcı GPS desteklemiyor</div>';
+  setTimeout(()=>{document.getElementById('gpsWait').style.display='none';},5000);
 }
 
 function onPos(p){
