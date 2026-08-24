@@ -25,9 +25,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 /* GPS */
 #overlay{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
 #overlay.hidden{opacity:0;pointer-events:none}
-/* Search — basit */
+/* Search — kompakt */
 #searchBar{position:fixed;top:56px;left:12px;right:12px;z-index:30}
-#sInput{flex:1;border:none;outline:none;background:transparent;color:var(--text);font-size:16px}
+#sInput{flex:1;border:none;outline:none;background:transparent;color:var(--text);font-size:14px}
+#sInput::placeholder{color:var(--sub)}
 #sInput::placeholder{color:var(--sub)}
 #sDrop{background:var(--surface);border-radius:var(--radius);margin-top:6px;overflow:hidden;display:none;max-height:260px;overflow-y:auto;box-shadow:var(--shadow)}
 .sItem{padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;font-size:14px;color:var(--text);display:flex;align-items:center;gap:10px}
@@ -125,13 +126,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
 <div id="map"></div>
 
-<!-- Search — basit input bar -->
-<div id="searchBar" style="position:fixed;top:56px;left:12px;right:12px;z-index:30;background:var(--surface);border-radius:16px;padding:0 14px;height:50px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)">
-  <span style="font-size:16px;color:var(--sub)">🔍</span>
-  <input id="sInput" placeholder="Nereye gidiyorsunuz?" autocomplete="off" spellcheck="false" style="flex:1;border:none;outline:none;background:transparent;color:var(--text);font-size:16px"/>
-  <span id="sX" style="display:none;cursor:pointer;color:var(--sub);font-size:18px" onclick="clearSearch()">✕</span>
+<!-- Search — kompakt -->
+<div id="searchBar" style="position:fixed;top:56px;left:12px;right:12px;z-index:30;background:var(--surface);border-radius:12px;padding:0 12px;height:42px;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow)">
+  <span style="font-size:14px;color:var(--sub)">🔍</span>
+  <input id="sInput" placeholder="Ara..." autocomplete="off" spellcheck="false" style="flex:1;border:none;outline:none;background:transparent;color:var(--text);font-size:14px"/>
+  <span id="sX" style="display:none;cursor:pointer;color:var(--sub);font-size:16px" onclick="clearSearch()">✕</span>
 </div>
-<div id="sDrop" style="position:fixed;top:114px;left:12px;right:12px;z-index:29;background:var(--surface);border-radius:14px;display:none;max-height:280px;overflow-y:auto;box-shadow:var(--shadow)"></div>
+<div id="sDrop" style="position:fixed;top:106px;left:12px;right:12px;z-index:29;background:var(--surface);border-radius:12px;display:none;max-height:260px;overflow-y:auto;box-shadow:var(--shadow)"></div>
 
 <!-- Nav Bar -->
 <div id="navBar">
