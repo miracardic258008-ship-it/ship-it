@@ -26,8 +26,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 #overlay{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
 #overlay.hidden{opacity:0;pointer-events:none}
 /* Search */
-#searchBar{position:fixed;top:0;left:0;right:0;z-index:30;padding:56px 16px 12px;background:linear-gradient(to bottom,var(--bg) 70%,transparent);pointer-events:none}
-#searchBox{display:flex;align-items:center;background:var(--surface);border-radius:var(--radius);padding:0 14px;height:48px;gap:10px;box-shadow:var(--shadow);pointer-events:auto}
+#searchDot{position:fixed;top:60px;left:16px;z-index:31}
+#searchPanel{position:fixed;top:56px;left:12px;right:12px;z-index:32;display:none;flex-direction:column;gap:6px}
 #sInput{flex:1;border:none;outline:none;background:transparent;color:var(--text);font-size:16px}
 #sInput::placeholder{color:var(--sub)}
 #sDrop{background:var(--surface);border-radius:var(--radius);margin-top:6px;overflow:hidden;display:none;max-height:260px;overflow-y:auto;box-shadow:var(--shadow)}
@@ -123,15 +123,18 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
 <div id="map"></div>
 
-<!-- Search -->
-<div id="searchBar">
-  <div id="searchBox">
-    <span style="font-size:15px;color:var(--sub)">🔍</span>
-    <input id="sInput" placeholder="Nereye?" autocomplete="off" spellcheck="false"/>
-    <span id="sX" style="display:none;cursor:pointer;color:var(--sub);font-size:16px;padding:4px" onclick="clearSearch()">✕</span>
-    <div id="sSpin" style="display:none;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0"></div>
+<!-- Search — nokta butonu -->
+<div id="searchDot" onclick="openSearch()" title="Ara" style="position:fixed;top:60px;left:16px;z-index:31;width:46px;height:46px;background:var(--surface);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);cursor:pointer;font-size:20px">🔍</div>
+
+<!-- Search Panel — açılınca -->
+<div id="searchPanel" style="position:fixed;top:56px;left:12px;right:12px;z-index:32;display:none;flex-direction:column;gap:6px">
+  <div style="display:flex;align-items:center;background:var(--surface);border-radius:16px;padding:0 14px;height:50px;gap:10px;box-shadow:var(--shadow)">
+    <span style="font-size:16px;color:var(--sub)">🔍</span>
+    <input id="sInput" placeholder="Nereye gidiyorsunuz?" autocomplete="off" spellcheck="false" style="flex:1;border:none;outline:none;background:transparent;color:var(--text);font-size:16px"/>
+    <span id="sX" style="display:none;cursor:pointer;color:var(--sub);font-size:18px" onclick="clearSearch()">✕</span>
+    <span onclick="closeSearch()" style="cursor:pointer;color:var(--sub);font-size:18px;margin-left:4px">⌄</span>
   </div>
-  <div id="sDrop"></div>
+  <div id="sDrop" style="background:var(--surface);border-radius:14px;display:none;max-height:240px;overflow-y:auto;box-shadow:var(--shadow)"></div>
 </div>
 
 <!-- Nav Bar -->
@@ -178,14 +181,18 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <button onclick="closeAlt()" style="border:none;background:none;cursor:pointer;color:var(--sub);font-size:18px;padding:0 4px">✕</button>
 </div>
 
-<!-- Right Panel -->
+<!-- Right Panel — Ev/Araba/Favori/Yakın buraya taşındı -->
 <div id="rp">
   <button class="rb2" onclick="goMe()" title="Konumum"><span class="ico">🎯</span><span class="lbl">Ben</span></button>
   <button class="rb2" id="btnCam" onclick="camNext()" title="Kamera"><span class="ico">🚗</span><span class="lbl">Önden</span></button>
   <button class="rb2" id="btnLayer" onclick="layerNext()" title="Harita"><span class="ico">🗺️</span><span class="lbl">Harita</span></button>
+  <button class="rb2" id="btnCursor" onclick="openM('cursorModal')" title="İmleç"><span class="ico">🎨</span><span class="lbl">İmleç</span></button>
   <button class="rb2 on" id="btnToll" onclick="toggleTolls()" title="Gişeler"><span class="ico">🛣️</span><span class="lbl">Gişe</span></button>
   <button class="rb2" id="btnVoice" onclick="voiceToggle()" title="Ses"><span class="ico">🔊</span><span class="lbl">Ses</span></button>
   <button class="rb2" onclick="toggleReport()" title="Bildir"><span class="ico">📢</span><span class="lbl">Bildir</span></button>
+  <button class="rb2" onclick="goHome()" title="Ev"><span class="ico">🏠</span><span class="lbl">Ev</span></button>
+  <button class="rb2" onclick="openM('favModal')" title="Favoriler"><span class="ico">⭐</span><span class="lbl">Favori</span></button>
+  <button class="rb2" onclick="openM('nearModal')" title="Yakınımda"><span class="ico">📍</span><span class="lbl">Yakın</span></button>
   <button class="rb2" onclick="openM('settModal')" title="Ayarlar"><span class="ico">⚙️</span><span class="lbl">Ayar</span></button>
 </div>
 
@@ -198,16 +205,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <button class="rBtn" onclick="rep('traffic_jam')">🚦 Trafik</button>
 </div>
 
-<!-- Bottom -->
-<div id="bot">
-  <div id="botInner">
-    <button class="bb" onclick="goHome()"><span class="bi">🏠</span>Eve Git</button>
-    <button class="bb" onclick="goCar()"><span class="bi">🅿️</span>Arabam</button>
-    <button class="bb" onclick="parkMe()"><span class="bi">🚗</span>Park Et</button>
-    <button class="bb" onclick="openM('favModal')"><span class="bi">⭐</span>Favoriler</button>
-    <button class="bb" onclick="openM('nearModal')"><span class="bi">📍</span>Yakınımda</button>
-  </div>
-</div>
+<!-- Bottom kaldırıldı — ev/araba/favori sağ panele taşındı -->
+
+<!-- Sağ Panele eklendi: Ev, Araba, Favori, Yakın -->
+
 
 <!-- Favoriler -->
 <div class="modal" id="favModal"><div class="mSheet">
@@ -227,6 +228,12 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <div class="modal" id="settModal"><div class="mSheet">
   <div class="mHdr"><span class="mTitle">⚙️ Ayarlar</span><button class="mX" onclick="closeM('settModal')">✕</button></div>
   <div id="settBody"></div>
+</div></div>
+
+<!-- İmleç Seçici -->
+<div class="modal" id="cursorModal"><div class="mSheet">
+  <div class="mHdr"><span class="mTitle">🎨 İmleç Seç</span><button class="mX" onclick="closeM('cursorModal')">✕</button></div>
+  <div id="cursorGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px"></div>
 </div></div>
 
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
@@ -349,16 +356,35 @@ function startInterp() {
 
 function updMarker() {
   if (lat===null) return;
+  const cur=CURSORS.find(c=>c.id===S.cursor)||CURSORS[0];
   if (!userMk) {
-    userMk = L.circleMarker([lat,lng], {
-      radius: S.cam==='drive'?10:8,
-      color: '#fff',
-      weight: 3,
-      fillColor: '#007aff',
-      fillOpacity: 1
-    }).addTo(map);
+    if(cur.is3d){
+      // 3D imleç — divIcon
+      userMk = L.marker([lat,lng], {
+        icon:L.divIcon({
+          html:`<div style="font-size:28px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));transform:rotate(${head}deg)">${cur.icon}</div>`,
+          iconSize:[28,28],iconAnchor:[14,14],className:''
+        }),
+        zIndexOffset:1000
+      }).addTo(map);
+    } else {
+      // 2D dot
+      userMk = L.circleMarker([lat,lng], {
+        radius: S.cam==='drive'?11:9,
+        color: '#fff',
+        weight: 3,
+        fillColor: cur.color,
+        fillOpacity: 1
+      }).addTo(map);
+    }
   } else {
     userMk.setLatLng([lat,lng]);
+    if(cur.is3d){
+      userMk.setIcon(L.divIcon({
+        html:`<div style="font-size:28px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));transform:rotate(${head}deg)">${cur.icon}</div>`,
+        iconSize:[28,28],iconAnchor:[14,14],className:''
+      }));
+    }
   }
   if (follow) {
     const c = CAM[S.cam]||CAM.drive;
@@ -374,13 +400,13 @@ function hideOverlay() {
 }
 
 // ════════════════════════════════════════════════
-// KAMERA MODLARI
+// KAMERA MODLARI — 3D tilt eklendi
 // ════════════════════════════════════════════════
 const CAM = {
-  drive: { oY:-0.0005, oX:0,       zoom:17, label:'Önden' },
-  back:  { oY:0.0005,  oX:0,       zoom:17, label:'Arkadan' },
-  top:   { oY:0,       oX:0,       zoom:16, label:'Üstten' },
-  free:  { oY:0,       oX:0,       zoom:15, label:'Serbest' }
+  drive: { oY:-0.0008, oX:0, zoom:18, label:'Önden 3D', tilt:55 },
+  back:  { oY:0.0006,  oX:0, zoom:17, label:'Arkadan', tilt:0 },
+  top:   { oY:0,       oX:0, zoom:16, label:'Üstten', tilt:0 },
+  free:  { oY:0,       oX:0, zoom:15, label:'Serbest', tilt:0 }
 };
 const CKEYS = ['drive','back','top','free'];
 const CICO  = {drive:'🚗',back:'🔙',top:'🛸',free:'🔓'};
@@ -394,8 +420,34 @@ function camNext() {
   btn.querySelector('.lbl').textContent = CAM[S.cam].label;
   if (S.cam==='free') follow=false;
   else { follow=true; if(lat) updMarker(); }
-  // Zoom ayarla
   if(S.cam!=='free') map.setZoom(CAM[S.cam].zoom, {animate:true});
+}
+
+// ════════════════════════════════════════════════
+// İMLEÇ SİSTEMİ — renkli + 3D
+// ════════════════════════════════════════════════
+const CURSORS = [
+  {id:'blue',name:'Mavi',color:'#007aff',icon:'🔵'},
+  {id:'red',name:'Kırmızı',color:'#ff3b30',icon:'🔴'},
+  {id:'green',name:'Yeşil',color:'#34c759',icon:'🟢'},
+  {id:'yellow',name:'Sarı',color:'#ffcc00',icon:'🟡'},
+  {id:'purple',name:'Mor',color:'#af52de',icon:'🟣'},
+  {id:'orange',name:'Turuncu',color:'#ff9500',icon:'🟠'},
+  {id:'car3d',name:'Araba 3D',color:'#007aff',icon:'🚗',is3d:true},
+  {id:'arrow3d',name:'Ok 3D',color:'#ff3b30',icon:'➡️',is3d:true},
+];
+if(!S.cursor) S.cursor='blue';
+
+function renderCursors() {
+  const grid=document.getElementById('cursorGrid');
+  grid.innerHTML=CURSORS.map(c=>`<div onclick="setCursor('${c.id}')" style="padding:16px;border-radius:14px;border:2px solid ${S.cursor===c.id?'var(--accent)':'var(--border)'};background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:.15s"><div style="font-size:32px">${c.icon}</div><div style="font-size:12px;font-weight:600;color:var(--text);text-align:center">${c.name}</div></div>`).join('');
+}
+function setCursor(id) {
+  S.cursor=id;
+  sv({cursor:id});
+  renderCursors();
+  if(userMk){ map.removeLayer(userMk); userMk=null; }
+  updMarker();
 }
 </script>
 
@@ -596,13 +648,23 @@ function updSpd() {
   document.getElementById('spd').style.bottom = navActive?'110px':'88px';
 }
 
-// Arama
+// ═══════ ARAMA — nokta/panel toggle ═══════
+function openSearch() {
+  document.getElementById('searchDot').style.display='none';
+  document.getElementById('searchPanel').style.display='flex';
+  setTimeout(()=>document.getElementById('sInput').focus(),100);
+}
+function closeSearch() {
+  document.getElementById('searchPanel').style.display='none';
+  document.getElementById('searchDot').style.display='flex';
+  document.getElementById('sDrop').style.display='none';
+}
 let _st=null;
 const sInp = document.getElementById('sInput');
 sInp.addEventListener('click', e=>e.stopPropagation());
 sInp.addEventListener('input', () => {
   const v=sInp.value.trim();
-  document.getElementById('sX').style.display = v?'block':'none';
+  document.getElementById('sX').style.display = v?'inline':'none';
   clearTimeout(_st);
   if(v.length<2){document.getElementById('sDrop').style.display='none';return;}
   _st = setTimeout(()=>doSearch(v), 450);
@@ -614,7 +676,6 @@ function clearSearch() {
   sInp.focus();
 }
 async function doSearch(q) {
-  document.getElementById('sSpin').style.display='block';
   try {
     const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=tr`,{headers:{'Accept-Language':'tr'},signal:AbortSignal.timeout(8000)});
     const d = await r.json();
@@ -625,20 +686,25 @@ async function doSearch(q) {
       const el=document.createElement('div');
       el.className='sItem';
       el.innerHTML=`<span>📍</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.display_name}</span>`;
-      el.onclick=()=>{clearSearch();startNav(x.display_name,+x.lat,+x.lon);};
+      el.onclick=()=>{closeSearch();setTimeout(()=>startNav(x.display_name,+x.lat,+x.lon),200);};
       drop.appendChild(el);
     });
     drop.style.display='block';
-  } catch{}
-  document.getElementById('sSpin').style.display='none';
+  } catch(e){console.warn('Search:',e);}
 }
 document.addEventListener('click', e=>{
-  if(!document.getElementById('searchBar').contains(e.target))
-    document.getElementById('sDrop').style.display='none';
+  const sp=document.getElementById('searchPanel');
+  if(sp && !sp.contains(e.target)) closeSearch();
 });
 
 // Modal
-function openM(id){document.getElementById(id).classList.add('open');if(id==='favModal')renderFavs();if(id==='nearModal')renderCats();if(id==='settModal')renderSett();}
+function openM(id){
+  document.getElementById(id).classList.add('open');
+  if(id==='favModal')renderFavs();
+  if(id==='nearModal')renderCats();
+  if(id==='settModal')renderSett();
+  if(id==='cursorModal')renderCursors();
+}
 function closeM(id){document.getElementById(id).classList.remove('open');}
 function toggleReport(){
   const p=document.getElementById('reportBox');
@@ -716,8 +782,7 @@ async function startNav(name, tla, tln) {
   navActive=true; stepIdx=0; warnedSteps={};
   follow=true;
   // UI
-  document.getElementById('searchBar').style.display='none';
-  document.getElementById('bot').style.display='none';
+  closeSearch();
   document.getElementById('navBar').style.display='block';
   document.getElementById('navStep').textContent='Rota hesaplanıyor...';
   document.getElementById('navArrow').textContent='⏳';
@@ -817,8 +882,7 @@ function stopNav() {
   navActive=false; follow=false; route=null; stepIdx=0; warnedSteps={};
   clearRoute(); closeAlt();
   document.getElementById('navBar').style.display='none';
-  document.getElementById('searchBar').style.display='block';
-  document.getElementById('bot').style.display='block';
+  document.getElementById('searchDot').style.display='flex';
   document.getElementById('nextHint').style.display='none';
   updSpd();
 }
