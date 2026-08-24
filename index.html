@@ -20,7 +20,8 @@ body.dark{
   --surface2:#2c2c2e;
 }
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;overflow:hidden;height:100dvh;width:100dvw;user-select:none}
-#map{position:fixed;inset:0;z-index:0}
+#map{position:fixed;inset:0;z-index:0;transform-origin:center bottom;transition:transform .4s ease}
+#map.tilt3d{transform:perspective(1200px) rotateX(45deg) scale(1.15)}
 .leaflet-control-zoom,.leaflet-control-attribution{display:none!important}
 /* GPS */
 #overlay{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
@@ -738,6 +739,8 @@ function toggleSim(){
 function startSim(){
   if(!route||!route.poly||route.poly.length<2)return;
   simActive=true; simIdx=0; simPoly=route.poly; simSpeed=0;
+  // 3D perspektif aç
+  document.getElementById('map').classList.add('tilt3d');
   clearInterval(simTimer);
   simTimer=setInterval(()=>{
     if(!simActive||simIdx>=simPoly.length){stopSim();return;}
@@ -778,6 +781,8 @@ function stopSim(){
   simActive=false;
   clearInterval(simTimer); simTimer=null;
   simSpeed=0; spd=0; updSpd();
+  // 3D perspektifi kapat
+  document.getElementById('map').classList.remove('tilt3d');
 }
 </script>
 
@@ -851,6 +856,8 @@ async function startNav(name, tla, tln) {
   document.getElementById('searchBar').style.display='none';
   document.getElementById('sDrop').style.display='none';
   document.getElementById('navBar').style.display='block';
+  // Hafif 3D tilt (navigasyonda)
+  document.getElementById('map').classList.add('tilt3d');
   document.getElementById('navStep').textContent='Rota hesaplanıyor...';
   document.getElementById('navArrow').textContent='⏳';
   ['favModal','nearModal','settModal'].forEach(closeM);
@@ -951,6 +958,8 @@ function stopNav() {
   document.getElementById('navBar').style.display='none';
   document.getElementById('searchBar').style.display='flex';
   document.getElementById('nextHint').style.display='none';
+  // 3D tilt kapat
+  document.getElementById('map').classList.remove('tilt3d');
   updSpd();
 }
 
