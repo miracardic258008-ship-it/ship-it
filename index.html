@@ -180,9 +180,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <!-- Right Panel — kompakt -->
 <div id="rp">
   <button class="rb2" onclick="goMe()" title="Konumum"><span class="ico">🎯</span><span class="lbl">Ben</span></button>
-  <button class="rb2" id="btnFollow" onclick="toggleFollow()" title="Takip Modu"><span class="ico">�</span><span class="lbl">Takip</span></button>
-  <button class="rb2" id="btnCam" onclick="camNext()" title="Kamera"><span class="ico">�</span><span class="lbl">Önden</span></button>
+  <button class="rb2" id="btnFollow" onclick="toggleFollow()" title="Takip Modu"><span class="ico">🔒</span><span class="lbl">Takip</span></button>
+  <button class="rb2" id="btnCam" onclick="camNext()" title="Kamera"><span class="ico">🚗</span><span class="lbl">Önden</span></button>
   <button class="rb2" id="btnLayer" onclick="layerNext()" title="Harita"><span class="ico">🗺️</span><span class="lbl">Harita</span></button>
+  <button class="rb2" id="btnSim" onclick="toggleSim()" title="Simülasyon"><span class="ico">🎮</span><span class="lbl">Sim</span></button>
   <button class="rb2 on" id="btnToll" onclick="toggleTolls()" title="Gişeler"><span class="ico">🛣️</span><span class="lbl">Gişe</span></button>
   <button class="rb2" id="btnVoice" onclick="voiceToggle()" title="Ses"><span class="ico">🔊</span><span class="lbl">Ses</span></button>
   <button class="rb2" onclick="toggleReport()" title="Bildir"><span class="ico">📢</span><span class="lbl">Bildir</span></button>
@@ -701,6 +702,57 @@ function toggleFollow(){
   btn.querySelector('.ico').textContent=follow?'🔒':'🔓';
   btn.querySelector('.lbl').textContent=follow?'Takip':'Serbest';
   if(follow&&lat) updMarker();
+}
+
+// ════════════════════════════════════════════════
+// SİMÜLASYON — Google Maps arkadan görünüm
+// ════════════════════════════════════════════════
+let simActive=false, simIdx=0, simTimer=null, simPoly=[];
+
+function toggleSim(){
+  const btn=document.getElementById('btnSim');
+  if(simActive){
+    stopSim();
+    btn.classList.remove('on');
+    btn.querySelector('.lbl').textContent='Sim';
+    say('Simülasyon durduruldu.');
+  } else {
+    if(!route){say('Önce bir rota oluşturun.');return;}
+    btn.classList.add('on');
+    btn.querySelector('.lbl').textContent='Durdur';
+    follow=true;
+    S.cam='back'; // Google Maps arkadan görünüm
+    camNext(); // UI güncelle
+    startSim();
+    say('Simülasyon başladı.');
+  }
+}
+
+function startSim(){
+  if(!route||!route.poly||route.poly.length<2)return;
+  simActive=true; simIdx=0; simPoly=route.poly;
+  clearInterval(simTimer);
+  simTimer=setInterval(()=>{
+    if(!simActive||simIdx>=simPoly.length){stopSim();return;}
+    const pt=simPoly[simIdx];
+    const nxt=simPoly[simIdx+1];
+    // Heading hesapla
+    if(nxt){
+      const dLat=nxt.lat-pt.lat, dLng=nxt.lng-pt.lng;
+      head=Math.atan2(dLng,dLat)*180/Math.PI;
+      if(head<0) head+=360;
+    }
+    tLat=pt.lat; tLng=pt.lng;
+    spd=50; // simülasyon hızı
+    updSpd();
+    simIdx++;
+  }, 150); // 150ms → yumuşak akış
+}
+
+function stopSim(){
+  simActive=false;
+  clearInterval(simTimer); simTimer=null;
+  spd=0; updSpd();
 }
 </script>
 
