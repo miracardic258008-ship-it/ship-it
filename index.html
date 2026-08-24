@@ -20,8 +20,7 @@ body.dark{
   --surface2:#2c2c2e;
 }
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;overflow:hidden;height:100dvh;width:100dvw;user-select:none}
-#map{position:fixed;inset:0;z-index:0;transform-origin:center bottom;transition:transform .4s ease}
-#map.tilt3d{transform:perspective(1200px) rotateX(45deg) scale(1.15)}
+#map{position:fixed;inset:0;z-index:0}
 .leaflet-control-zoom,.leaflet-control-attribution{display:none!important}
 /* GPS */
 #overlay{position:fixed;inset:0;z-index:90;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
@@ -186,7 +185,6 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <button class="rb2" id="btnFollow" onclick="toggleFollow()" title="Takip Modu"><span class="ico">🔒</span><span class="lbl">Takip</span></button>
   <button class="rb2" id="btnCam" onclick="camNext()" title="Kamera"><span class="ico">🚗</span><span class="lbl">Önden</span></button>
   <button class="rb2" id="btnLayer" onclick="layerNext()" title="Harita"><span class="ico">🗺️</span><span class="lbl">Harita</span></button>
-  <button class="rb2" id="btnSim" onclick="toggleSim()" title="Simülasyon"><span class="ico">🎮</span><span class="lbl">Sim</span></button>
   <button class="rb2 on" id="btnToll" onclick="toggleTolls()" title="Gişeler"><span class="ico">🛣️</span><span class="lbl">Gişe</span></button>
   <button class="rb2" id="btnVoice" onclick="voiceToggle()" title="Ses"><span class="ico">🔊</span><span class="lbl">Ses</span></button>
   <button class="rb2" onclick="toggleReport()" title="Bildir"><span class="ico">📢</span><span class="lbl">Bildir</span></button>
@@ -708,85 +706,7 @@ function toggleFollow(){
 }
 
 // ════════════════════════════════════════════════
-// SİMÜLASYON — Google Maps arkadan görünüm
-// ════════════════════════════════════════════════
-// SİMÜLASYON — Smooth rotation + dinamik hareket
-// ════════════════════════════════════════════════
-let simActive=false, simIdx=0, simTimer=null, simPoly=[];
-let simSpeed=0, simAccel=0.8; // hızlanma
-
-function toggleSim(){
-  const btn=document.getElementById('btnSim');
-  if(simActive){
-    stopSim();
-    btn.classList.remove('on');
-    btn.querySelector('.lbl').textContent='Sim';
-    say('Simülasyon durduruldu.');
-  } else {
-    if(!route){say('Önce bir rota oluşturun.');return;}
-    btn.classList.add('on');
-    btn.querySelector('.lbl').textContent='Durdur';
-    follow=true;
-    S.cam='drive'; // Önden görünüm
-    const bcam=document.getElementById('btnCam');
-    bcam.querySelector('.ico').textContent='🚗';
-    bcam.querySelector('.lbl').textContent='Önden 3D';
-    startSim();
-    say('Simülasyon başladı.');
-  }
-}
-
-function startSim(){
-  if(!route||!route.poly||route.poly.length<2)return;
-  simActive=true; simIdx=0; simPoly=route.poly; simSpeed=0;
-  // 3D perspektif aç
-  document.getElementById('map').classList.add('tilt3d');
-  clearInterval(simTimer);
-  simTimer=setInterval(()=>{
-    if(!simActive||simIdx>=simPoly.length){stopSim();return;}
-    const pt=simPoly[simIdx];
-    const nxt=simPoly[simIdx+1];
-    
-    // Smooth heading rotation — ani dönüş yerine yumuşak
-    if(nxt){
-      const dLat=nxt.lat-pt.lat, dLng=nxt.lng-pt.lng;
-      let targetHead=Math.atan2(dLng,dLat)*180/Math.PI;
-      if(targetHead<0) targetHead+=360;
-      
-      // En kısa yolu bul (360° geçişi)
-      let diff=targetHead-head;
-      if(diff>180) diff-=360;
-      if(diff<-180) diff+=360;
-      
-      // Yumuşak interpolasyon
-      head += diff*0.2; // %20 her adımda döner
-      if(head<0) head+=360;
-      if(head>=360) head-=360;
-    }
-    
-    tLat=pt.lat; tLng=pt.lng;
-    
-    // Hızlanma — 0'dan 60'a yumuşak
-    const targetSpeed=60;
-    if(simSpeed<targetSpeed) simSpeed+=simAccel;
-    else simSpeed=targetSpeed;
-    spd=Math.round(simSpeed);
-    updSpd();
-    
-    simIdx++;
-  }, 100); // 100ms → çok smooth
-}
-
-function stopSim(){
-  simActive=false;
-  clearInterval(simTimer); simTimer=null;
-  simSpeed=0; spd=0; updSpd();
-  // 3D perspektifi kapat
-  document.getElementById('map').classList.remove('tilt3d');
-}
-</script>
-
-<script>
+// RADAR SİSTEMİ
 // ════════════════════════════════════════════════
 // NAVİGASYON — OSRM + akıcı adım + alternatif rota
 // ════════════════════════════════════════════════
@@ -856,8 +776,6 @@ async function startNav(name, tla, tln) {
   document.getElementById('searchBar').style.display='none';
   document.getElementById('sDrop').style.display='none';
   document.getElementById('navBar').style.display='block';
-  // Hafif 3D tilt (navigasyonda)
-  document.getElementById('map').classList.add('tilt3d');
   document.getElementById('navStep').textContent='Rota hesaplanıyor...';
   document.getElementById('navArrow').textContent='⏳';
   ['favModal','nearModal','settModal'].forEach(closeM);
@@ -958,8 +876,6 @@ function stopNav() {
   document.getElementById('navBar').style.display='none';
   document.getElementById('searchBar').style.display='flex';
   document.getElementById('nextHint').style.display='none';
-  // 3D tilt kapat
-  document.getElementById('map').classList.remove('tilt3d');
   updSpd();
 }
 
