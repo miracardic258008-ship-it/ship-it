@@ -709,7 +709,10 @@ function toggleFollow(){
 // ════════════════════════════════════════════════
 // SİMÜLASYON — Google Maps arkadan görünüm
 // ════════════════════════════════════════════════
+// SİMÜLASYON — Smooth rotation + dinamik hareket
+// ════════════════════════════════════════════════
 let simActive=false, simIdx=0, simTimer=null, simPoly=[];
+let simSpeed=0, simAccel=0.8; // hızlanma
 
 function toggleSim(){
   const btn=document.getElementById('btnSim');
@@ -723,8 +726,10 @@ function toggleSim(){
     btn.classList.add('on');
     btn.querySelector('.lbl').textContent='Durdur';
     follow=true;
-    S.cam='back'; // Google Maps arkadan görünüm
-    camNext(); // UI güncelle
+    S.cam='drive'; // Önden görünüm
+    const bcam=document.getElementById('btnCam');
+    bcam.querySelector('.ico').textContent='🚗';
+    bcam.querySelector('.lbl').textContent='Önden 3D';
     startSim();
     say('Simülasyon başladı.');
   }
@@ -732,29 +737,47 @@ function toggleSim(){
 
 function startSim(){
   if(!route||!route.poly||route.poly.length<2)return;
-  simActive=true; simIdx=0; simPoly=route.poly;
+  simActive=true; simIdx=0; simPoly=route.poly; simSpeed=0;
   clearInterval(simTimer);
   simTimer=setInterval(()=>{
     if(!simActive||simIdx>=simPoly.length){stopSim();return;}
     const pt=simPoly[simIdx];
     const nxt=simPoly[simIdx+1];
-    // Heading hesapla
+    
+    // Smooth heading rotation — ani dönüş yerine yumuşak
     if(nxt){
       const dLat=nxt.lat-pt.lat, dLng=nxt.lng-pt.lng;
-      head=Math.atan2(dLng,dLat)*180/Math.PI;
+      let targetHead=Math.atan2(dLng,dLat)*180/Math.PI;
+      if(targetHead<0) targetHead+=360;
+      
+      // En kısa yolu bul (360° geçişi)
+      let diff=targetHead-head;
+      if(diff>180) diff-=360;
+      if(diff<-180) diff+=360;
+      
+      // Yumuşak interpolasyon
+      head += diff*0.2; // %20 her adımda döner
       if(head<0) head+=360;
+      if(head>=360) head-=360;
     }
+    
     tLat=pt.lat; tLng=pt.lng;
-    spd=50; // simülasyon hızı
+    
+    // Hızlanma — 0'dan 60'a yumuşak
+    const targetSpeed=60;
+    if(simSpeed<targetSpeed) simSpeed+=simAccel;
+    else simSpeed=targetSpeed;
+    spd=Math.round(simSpeed);
     updSpd();
+    
     simIdx++;
-  }, 150); // 150ms → yumuşak akış
+  }, 100); // 100ms → çok smooth
 }
 
 function stopSim(){
   simActive=false;
   clearInterval(simTimer); simTimer=null;
-  spd=0; updSpd();
+  simSpeed=0; spd=0; updSpd();
 }
 </script>
 
